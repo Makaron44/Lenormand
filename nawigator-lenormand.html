@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Nawigator Lenormand</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F1E6CF;
+    --surface: #FBF5E7;
+    --surface-2: #E7D8B2;
+    --text: #241E14;
+    --text-muted: #6E6047;
+    --accent: #7A2E3A;
+    --accent-soft: #C68E97;
+    --gold: #A97A3B;
+    --forest: #3E5B4C;
+    --border: #D6C296;
+    --shadow: rgba(60, 40, 20, 0.18);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191310;
+      --surface: #241C17;
+      --surface-2: #2E241C;
+      --text: #EEE2C8;
+      --text-muted: #AA9B7E;
+      --accent: #C4808C;
+      --accent-soft: #7A4B54;
+      --gold: #D6A356;
+      --forest: #7FA290;
+      --border: #3B2F25;
+      --shadow: rgba(0, 0, 0, 0.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191310;
+    --surface: #241C17;
+    --surface-2: #2E241C;
+    --text: #EEE2C8;
+    --text-muted: #AA9B7E;
+    --accent: #C4808C;
+    --accent-soft: #7A4B54;
+    --gold: #D6A356;
+    --forest: #7FA290;
+    --border: #3B2F25;
+    --shadow: rgba(0, 0, 0, 0.5);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, h3, .display { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
+
+  body { padding-bottom: 76px; }
+
+  .wrap { max-width: 640px; margin: 0 auto; padding: 0 18px; }
+
+  header.top {
+    padding: 28px 18px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--surface-2), var(--bg));
+  }
+  header.top .inner { max-width: 640px; margin: 0 auto; }
+  header.top h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    font-optical-sizing: auto;
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+    color: var(--accent);
+  }
+  header.top p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 46ch;
+  }
+
+  .tabpanel { padding: 20px 0 30px; }
+  .tabpanel[hidden] { display: none; }
+
+  /* ---- search ---- */
+  .search {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-family: inherit;
+    margin-bottom: 16px;
+  }
+  .search:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .search::placeholder { color: var(--text-muted); }
+
+  /* ---- deck grid ---- */
+  .deck-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .card-slot { perspective: 900px; aspect-ratio: 3 / 4.3; }
+  .card-inner {
+    position: relative; width: 100%; height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(.4,.2,.2,1);
+    cursor: pointer;
+  }
+  .card-slot.flipped .card-inner { transform: rotateY(180deg); }
+  .card-face {
+    position: absolute; inset: 0;
+    backface-visibility: hidden;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px 6px;
+    text-align: center;
+  }
+  .card-front {
+    background: var(--surface);
+  }
+  .card-front .num {
+    font-family: 'Fraunces', serif;
+    font-variant-numeric: oldstyle-nums;
+    font-size: 0.72rem;
+    color: var(--gold);
+    position: absolute; top: 6px; left: 8px;
+  }
+  .card-front svg { width: 42%; height: 42%; color: var(--accent); margin-bottom: 6px; }
+  .card-front .name {
+    font-family: 'Fraunces', serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+  .card-back {
+    background: var(--accent);
+    color: var(--surface);
+    transform: rotateY(180deg);
+    justify-content: flex-start;
+    padding-top: 14px;
+  }
+  .card-back .key {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    margin-bottom: 6px;
+  }
+  .card-back .meaning {
+    font-size: 0.66rem;
+    line-height: 1.3;
+    color: var(--accent-soft);
+    flex: 1;
+  }
+  .more-btn {
+    margin-top: 8px;
+    border: 1px solid var(--accent-soft);
+    background: transparent;
+    color: var(--surface);
+    font-size: 0.62rem;
+    font-weight: 600;
+    font-family: inherit;
+    padding: 5px 10px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .no-results { color: var(--text-muted); text-align: center; padding: 30px 0; font-size: 0.9rem; }
+
+  /* ---- section labels ---- */
+  .section-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+    color: var(--text);
+  }
+  .lede { color: var(--text-muted); font-size: 0.92rem; margin: -4px 0 18px; }
+
+  /* ---- buttons ---- */
+  .btn {
+    font-family: 'Source Sans 3', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: var(--accent);
+    color: var(--surface);
+    transition: transform 0.15s ease, opacity 0.15s ease;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+  }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  /* ---- trainer ---- */
+  .mode-toggle {
+    display: flex; gap: 8px; margin-bottom: 18px;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 9px 8px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .mode-btn.active { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+
+  .quiz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 18px;
+    text-align: center;
+  }
+  .quiz-icons { display: flex; justify-content: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+  .quiz-icon-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .quiz-icon-item svg { width: 46px; height: 46px; color: var(--accent); }
+  .quiz-icon-item span { font-size: 0.68rem; color: var(--text-muted); font-weight: 600; }
+  .quiz-question { font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px; }
+  .options { display: flex; flex-direction: column; gap: 9px; }
+  .option-btn {
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .option-btn.correct { border-color: var(--forest); background: color-mix(in srgb, var(--forest) 16%, var(--surface)); }
+  .option-btn.wrong { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+  .option-btn:disabled { cursor: default; }
+
+  .stat-row {
+    display: flex; gap: 18px; margin-bottom: 16px;
+    font-size: 0.82rem; color: var(--text-muted);
+  }
+  .stat-row b { color: var(--accent); font-family: 'Fraunces', serif; font-size: 1rem; }
+
+  /* ---- daily draw ---- */
+  .draw-count { display: flex; gap: 8px; margin-bottom: 18px; }
+  .drawn-cards { display: flex; justify-content: center; gap: 12px; margin: 8px 0 20px; flex-wrap: wrap; }
+  .drawn-cards .mini {
+    width: 78px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 6px; text-align: center;
+  }
+  .drawn-cards .mini svg { width: 30px; height: 30px; color: var(--accent); }
+  .drawn-cards .mini .n { font-size: 0.72rem; font-weight: 600; margin-top: 4px; font-family: 'Fraunces', serif; }
+  textarea.journal {
+    width: 100%; min-height: 90px; border-radius: 10px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text); padding: 12px; font-family: inherit;
+    font-size: 0.9rem; resize: vertical;
+  }
+  .reveal-box {
+    margin-top: 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px 16px; display: none;
+  }
+  .reveal-box.show { display: block; }
+  .reveal-item { display: flex; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+  .reveal-item:last-child { border-bottom: none; }
+  .reveal-item svg { width: 26px; height: 26px; color: var(--accent); flex-shrink: 0; }
+  .reveal-item .t { font-weight: 600; font-size: 0.88rem; margin-bottom: 6px; }
+  .cat-line { font-size: 0.76rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 3px; }
+  .cat-line b { color: var(--text); font-weight: 600; }
+
+  /* ---- modal ---- */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(20, 14, 8, 0.55);
+    display: none; align-items: flex-end; justify-content: center;
+    z-index: 50; padding: 0;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    width: 100%; max-width: 640px;
+    border-radius: 18px 18px 0 0;
+    padding: 22px 22px calc(22px + env(safe-area-inset-bottom));
+    max-height: 82vh; overflow-y: auto;
+    border-top: 1px solid var(--border);
+  }
+  .modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .modal-head svg { width: 44px; height: 44px; color: var(--accent); flex-shrink: 0; }
+  .modal-head h3 { margin: 0; font-size: 1.15rem; }
+  .modal-head .k { font-size: 0.82rem; color: var(--gold); font-weight: 600; }
+  .modal-close {
+    margin-left: auto; background: var(--surface-2); border: none; color: var(--text);
+    width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1rem;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .cat-block { margin-bottom: 14px; }
+  .cat-block .label { font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: none; margin-bottom: 4px; }
+  .cat-block p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--text); }
+
+  /* ---- bottom nav ---- */
+  nav.bottom {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    z-index: 20;
+  }
+  nav.bottom button {
+    flex: 1; background: none; border: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 4px; border-radius: 10px;
+    color: var(--text-muted);
+    font-family: 'Source Sans 3', sans-serif; font-size: 0.72rem; font-weight: 600;
+  }
+  nav.bottom button.active { color: var(--accent); }
+  nav.bottom svg { width: 20px; height: 20px; }
+
+  @media (min-width: 480px) {
+    .deck-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="inner">
+    <h1>Nawigator Lenormand</h1>
+    <p>Talia do nauki, trener znaczeń i miejsce na codzienną praktykę łączenia kart.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- TALIA -->
+  <section class="tabpanel" id="panel-deck">
+    <input class="search" id="search" type="text" placeholder="Szukaj po nazwie lub znaczeniu…">
+    <div class="deck-grid" id="deckGrid"></div>
+    <p class="no-results" id="noResults" hidden>Brak kart pasujących do wyszukiwania.</p>
+  </section>
+
+  <!-- TRENER -->
+  <section class="tabpanel" id="panel-trainer" hidden>
+    <h2 class="section-title">Trener</h2>
+    <p class="lede">Ćwicz rozpoznawanie kart pojedynczo albo trenuj łączenie trzech kart w jeden temat.</p>
+
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="single" id="modeSingle">Pojedyncze karty</button>
+      <button class="mode-btn" data-mode="triple" id="modeTriple">Układ 3 kart</button>
+    </div>
+
+    <div class="stat-row" id="statRow">
+      <span>Poprawne: <b id="statCorrect">0</b></span>
+      <span>Pytania: <b id="statTotal">0</b></span>
+    </div>
+
+    <div class="quiz-card" id="quizArea"></div>
+  </section>
+
+  <!-- WRÓŻBA DNIA -->
+  <section class="tabpanel" id="panel-draw" hidden>
+    <h2 class="section-title">Losowanie</h2>
+    <p class="lede">Wylosuj karty, zapisz własną interpretację, a potem porównaj ją ze znaczeniami z talii.</p>
+
+    <div class="draw-count">
+      <button class="mode-btn active" data-n="1">1 karta</button>
+      <button class="mode-btn" data-n="3">3 karty</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn" id="drawBtn">Losuj karty</button>
+    </div>
+
+    <div class="drawn-cards" id="drawnCards"></div>
+
+    <div id="journalWrap" style="display:none;">
+      <textarea class="journal" id="journal" placeholder="Twoja interpretacja tego układu…"></textarea>
+      <div class="btn-row">
+        <button class="btn secondary" id="revealBtn">Pokaż znaczenia</button>
+      </div>
+      <div class="reveal-box" id="revealBox"></div>
+    </div>
+  </section>
+
+</div>
+
+<nav class="bottom">
+  <button class="active" data-tab="deck">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><rect x="14" y="8" width="28" height="40" rx="3"/><rect x="22" y="16" width="28" height="40" rx="3" fill="var(--surface)"/></svg>
+    Talia
+  </button>
+  <button data-tab="trainer">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="24" r="14"/><path d="M26 36 L20 54 L32 48 L44 54 L38 36"/></svg>
+    Trener
+  </button>
+  <button data-tab="draw">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"><path d="M32 10 L32 22 M32 42 L32 54 M10 32 L22 32 M42 32 L54 32 M17 17 L25 25 M39 39 L47 47 M47 17 L39 25 M25 39 L17 47"/></svg>
+    Losowanie
+  </button>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+/* ---------------- CARD DATA ---------------- */
+const ICON = {
+  arrow:  `<path d="M18 46 L44 20 M44 20 L32 20 M44 20 L44 32"/>`,
+  clover: `<circle cx="26" cy="24" r="7"/><circle cx="38" cy="24" r="7"/><circle cx="32" cy="34" r="7"/><path d="M32 41 L32 52"/>`,
+  ship:   `<polygon points="32,10 32,34 46,34" fill="currentColor" stroke="none"/><path d="M14 40 L50 40 L44 50 L20 50 Z"/><path d="M32 10 L32 40"/>`,
+  house:  `<path d="M14 30 L32 14 L50 30"/><path d="M18 28 L18 50 L46 50 L46 28"/>`,
+  tree:   `<circle cx="32" cy="24" r="14"/><path d="M32 36 L32 54"/>`,
+  clouds: `<circle cx="24" cy="30" r="9"/><circle cx="36" cy="26" r="11"/><circle cx="46" cy="32" r="7"/><path d="M14 38 L52 38"/>`,
+  snake:  `<path d="M14 44 Q22 24 32 34 Q42 44 50 24"/><circle cx="50" cy="22" r="2.4" fill="currentColor" stroke="none"/>`,
+  coffin: `<polygon points="24,10 40,10 46,26 40,54 24,54 18,26"/>`,
+  bouquet:`<circle cx="24" cy="20" r="6"/><circle cx="34" cy="16" r="6"/><circle cx="42" cy="24" r="6"/><path d="M24 26 L32 52 M34 22 L32 52 M42 30 L32 52"/>`,
+  scythe: `<path d="M20 50 L38 14 Q48 10 48 22 Q48 32 36 30"/>`,
+  whip:   `<path d="M14 18 Q24 24 14 30 Q24 36 14 42"/><path d="M28 16 Q38 22 28 28 Q38 34 28 40"/><path d="M42 14 Q52 20 42 26 Q52 32 42 38"/>`,
+  birds:  `<path d="M10 30 Q18 18 26 30 Q34 18 42 30"/><path d="M24 40 Q32 28 40 40 Q48 28 56 40"/>`,
+  child:  `<circle cx="32" cy="20" r="8"/><path d="M22 52 Q22 34 32 34 Q42 34 42 52"/>`,
+  fox:    `<polygon points="32,14 20,42 44,42"/><polygon points="20,42 12,26 26,34"/><polygon points="44,42 52,26 38,34"/>`,
+  bear:   `<circle cx="32" cy="34" r="16"/><circle cx="19" cy="18" r="6"/><circle cx="45" cy="18" r="6"/>`,
+  star:   `<polygon points="32,8 38,26 57,26 41,37 47,55 32,44 17,55 23,37 7,26 26,26"/>`,
+  stork:  `<circle cx="34" cy="22" r="8"/><path d="M34 30 L34 46 M34 46 L26 56 M34 46 L42 56 M26 22 L14 16"/>`,
+  dog:    `<path d="M16 46 Q16 26 32 26 Q46 26 46 40 Q46 50 36 50 L22 50 Q16 50 16 46 Z"/><polygon points="20,26 12,14 24,20"/>`,
+  tower:  `<rect x="20" y="22" width="24" height="32"/><path d="M20 22 L20 14 L26 14 L26 20 M32 20 L32 14 L38 14 L38 20 M44 20 L44 14 L50 14 L50 22"/>`,
+  garden: `<rect x="12" y="14" width="40" height="36" rx="4"/><circle cx="22" cy="24" r="2.4" fill="currentColor" stroke="none"/><circle cx="32" cy="24" r="2.4" fill="currentColor" stroke="none"/><circle cx="42" cy="24" r="2.4" fill="currentColor" stroke="none"/><circle cx="22" cy="32" r="2.4" fill="currentColor" stroke="none"/><circle cx="32" cy="32" r="2.4" fill="currentColor" stroke="none"/><circle cx="42" cy="32" r="2.4" fill="currentColor" stroke="none"/><circle cx="22" cy="40" r="2.4" fill="currentColor" stroke="none"/><circle cx="32" cy="40" r="2.4" fill="currentColor" stroke="none"/><circle cx="42" cy="40" r="2.4" fill="currentColor" stroke="none"/>`,
+  mountain:`<path d="M8 48 L24 20 L32 32 L40 16 L56 48 Z"/>`,
+  cross2: `<path d="M12 32 L32 12 M32 12 L24 12 M32 12 L32 20 M32 32 L52 52 M52 52 L52 44 M52 52 L44 52 M12 32 L20 32 M12 32 L12 24 M32 32 L12 52 M12 52 L12 44 M12 52 L20 52 M32 32 L52 12 M52 12 L44 12 M52 12 L52 20"/>`,
+  mice:   `<ellipse cx="22" cy="32" rx="10" ry="7"/><path d="M12 30 Q4 26 6 20"/><ellipse cx="42" cy="40" rx="10" ry="7"/><path d="M32 38 Q24 34 26 28"/>`,
+  heart:  `<path d="M32 50 C10 34 12 14 26 14 C30 14 32 18 32 18 C32 18 34 14 38 14 C52 14 54 34 32 50 Z"/>`,
+  ring:   `<circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="8"/>`,
+  book:   `<path d="M32 16 C26 12 16 12 12 16 L12 46 C16 42 26 42 32 46 C38 42 48 42 52 46 L52 16 C48 12 38 12 32 16 Z"/><path d="M32 16 L32 46"/>`,
+  letter: `<rect x="12" y="16" width="40" height="30"/><path d="M12 16 L32 34 L52 16"/>`,
+  man:    `<circle cx="32" cy="18" r="8"/><polygon points="32,30 20,54 44,54"/>`,
+  woman:  `<circle cx="32" cy="18" r="8"/><polygon points="32,30 16,54 48,54"/>`,
+  lily:   `<ellipse cx="32" cy="22" rx="6" ry="14"/><ellipse cx="20" cy="34" rx="6" ry="14" transform="rotate(-55 20 34)"/><ellipse cx="44" cy="34" rx="6" ry="14" transform="rotate(55 44 34)"/><path d="M32 44 L32 56"/>`,
+  sun:    `<circle cx="32" cy="32" r="11"/><path d="M32 6 L32 14 M32 50 L32 58 M6 32 L14 32 M50 32 L58 32 M13 13 L19 19 M45 45 L51 51 M51 13 L45 19 M19 45 L13 51"/>`,
+  moon:   `<path d="M40 12 A20 20 0 1 0 40 52 A16 16 0 1 1 40 12 Z"/>`,
+  key:    `<circle cx="20" cy="32" r="10"/><path d="M28 32 L54 32 M46 32 L46 40 M52 32 L52 38"/>`,
+  fish:   `<path d="M12 32 Q26 12 48 32 Q26 52 12 32 Z"/><path d="M48 32 L58 24 M48 32 L58 40"/>`,
+  anchor: `<circle cx="32" cy="14" r="6"/><path d="M32 20 L32 52 M18 34 L46 34 M14 40 Q14 56 32 56 Q50 56 50 40"/>`,
+  cross:  `<path d="M32 10 L32 54 M14 26 L50 26"/>`,
+};
+
+const CARDS = [
+  {id:1, name:"Jeździec", key:"Wiadomość, nowiny", icon:"arrow",
+    general:"Coś nowego się zbliża — informacja, gość albo szybka zmiana sytuacji, zanim się zorientujesz.",
+    love:"Wiadomość od ukochanej osoby albo nowa znajomość zbliżająca się szybko.",
+    work:"Nowa oferta, wiadomość biznesowa, przyspieszone tempo wydarzeń zawodowych.",
+    health:"Nagła zmiana samopoczucia, potrzeba ruchu i aktywności."},
+  {id:2, name:"Koniczyna", key:"Drobne szczęście", icon:"clover",
+    general:"Krótkotrwały pomyślny traf, mała szansa warta wykorzystania, zanim minie.",
+    love:"Miły, lekki flirt albo chwila szczęścia w relacji.",
+    work:"Niewielki, szybki zysk lub korzystny drobny traf.",
+    health:"Chwilowa poprawa samopoczucia, lekka ulga."},
+  {id:3, name:"Statek", key:"Podróż, handel", icon:"ship",
+    general:"Ruch, wyjazd, sprawy dalekosiężne — fizyczne lub handlowe przemieszczenie się.",
+    love:"Związek na odległość albo uczucie rodzące się w podróży.",
+    work:"Handel zagraniczny, import lub eksport, zmiana miejsca pracy.",
+    health:"Potrzeba zmiany otoczenia, „oddechu”, wyjazdu dla regeneracji."},
+  {id:4, name:"Dom", key:"Dom, stabilność", icon:"house",
+    general:"Rodzina, poczucie bezpieczeństwa, sprawy domowe albo miejsce, do którego się wraca.",
+    love:"Związek zmierzający ku wspólnemu mieszkaniu, rodzinna atmosfera.",
+    work:"Stabilne źródło dochodu, praca z domu, sprawy majątkowe.",
+    health:"Potrzeba odpoczynku we własnych czterech ścianach, regeneracja w domu."},
+  {id:5, name:"Drzewo", key:"Zdrowie, korzenie", icon:"tree",
+    general:"Coś rozwijającego się powoli, głęboko zakorzenionego — zdrowie, historia, trwały proces.",
+    love:"Głęboka, zakorzeniona relacja, uczucie budowane latami.",
+    work:"Stabilny, powoli rosnący projekt lub kariera.",
+    health:"Ogólna kondycja organizmu, sprawy zdrowotne w dłuższej perspektywie."},
+  {id:6, name:"Chmury", key:"Niepewność", icon:"clouds",
+    general:"Zamęt, brak jasności, chwilowe zachmurzenie sytuacji — zwykle mija.",
+    love:"Nieporozumienie, niejasna sytuacja uczuciowa.",
+    work:"Niepewna sytuacja zawodowa, chaos w planach.",
+    health:"Wahania samopoczucia, trudność w zdiagnozowaniu przyczyny."},
+  {id:7, name:"Węże", key:"Komplikacja", icon:"snake",
+    general:"Skomplikowana sprawa, rywalka, podstęp albo ktoś, kto owija w bawełnę.",
+    love:"Rywalka, zdrada lub skomplikowany trójkąt uczuciowy.",
+    work:"Intrygi w pracy, nieuczciwy kontrahent.",
+    health:"Ukryty problem zdrowotny wymagający uwagi."},
+  {id:8, name:"Trumna", key:"Zakończenie", icon:"coffin",
+    general:"Definitywny koniec etapu, transformacja, czasem choroba lub żałoba po czymś minionym.",
+    love:"Zamknięcie rozdziału w relacji, koniec uczucia.",
+    work:"Koniec projektu lub etapu zawodowego.",
+    health:"Choroba lub konieczność radykalnej zmiany nawyków."},
+  {id:9, name:"Bukiet", key:"Dar, zaproszenie", icon:"bouquet",
+    general:"Coś miłego — prezent, zaproszenie, gest uznania albo piękny moment.",
+    love:"Romantyczny gest, wyznanie uczuć, zaproszenie na randkę.",
+    work:"Uznanie, nagroda, korzystna propozycja.",
+    health:"Poprawa samopoczucia, coś co sprawia przyjemność i relaksuje."},
+  {id:10, name:"Kosa", key:"Nagłe cięcie", icon:"scythe",
+    general:"Szybka, ostra decyzja lub wydarzenie — coś zostaje przecięte bez ostrzeżenia.",
+    love:"Nagłe zerwanie lub gwałtowna decyzja w związku.",
+    work:"Nagłe zwolnienie, cięcia budżetowe, szybka decyzja biznesowa.",
+    health:"Nagły zabieg, konieczność szybkiej reakcji na objawy."},
+  {id:11, name:"Bicz", key:"Powtarzający się spór", icon:"whip",
+    general:"Konflikt, kłótnia, coś co wraca — rutyna albo powtarzalny problem do rozwiązania.",
+    love:"Nawracające kłótnie, ten sam problem wracający w relacji.",
+    work:"Powtarzalne spory zawodowe, monotonna, wyczerpująca praca.",
+    health:"Powtarzający się ból lub dolegliwość, przewlekły stres."},
+  {id:12, name:"Ptaki", key:"Rozmowa, para", icon:"birds",
+    general:"Wymiana zdań, plotki, nerwowa rozmowa albo dwie osoby działające razem.",
+    love:"Rozmowy o uczuciach, plotki dotyczące związku.",
+    work:"Negocjacje, spotkania, wymiana informacji zawodowych.",
+    health:"Niepokój, roztrzęsienie nerwowe, potrzeba wyciszenia."},
+  {id:13, name:"Dziecko", key:"Nowy początek", icon:"child",
+    general:"Coś małego, niewinnego, dopiero się zaczyna — nowy projekt, naiwność, świeży start.",
+    love:"Świeże, niewinne uczucie, początek znajomości.",
+    work:"Nowy, mały projekt dopiero raczkujący.",
+    health:"Potrzeba prostszego podejścia do zdrowia, powrót do podstaw."},
+  {id:14, name:"Lis", key:"Przebiegłość, praca", icon:"fox",
+    general:"Sprytna strategia, praca zawodowa, ktoś, kto nie gra do końca w otwarte karty.",
+    love:"Ktoś nie do końca szczery w uczuciach, gra pozorów.",
+    work:"Sprytna strategia zawodowa, ale i ryzyko oszustwa.",
+    health:"Ukrywanie objawów przed sobą lub innymi."},
+  {id:15, name:"Niedźwiedź", key:"Siła, ochrona", icon:"bear",
+    general:"Silna, dominująca osoba — szef, opiekun, ktoś kto chroni albo kontroluje zasoby.",
+    love:"Opiekuńczy, czasem zaborczy partner.",
+    work:"Silny szef, duże zasoby finansowe, kontrola nad budżetem.",
+    health:"Dobra fizyczna kondycja, ale ryzyko przeciążenia."},
+  {id:16, name:"Gwiazda", key:"Nadzieja, kierunek", icon:"star",
+    general:"Jasny cel, inspiracja, rozpoznawalność — coś prowadzi cię we właściwą stronę.",
+    love:"Uczucie oparte na szczerości i wspólnych marzeniach.",
+    work:"Rozpoznawalność, sukces widoczny publicznie, inspirujący kierunek kariery.",
+    health:"Odzyskiwanie sił, optymistyczne rokowania."},
+  {id:17, name:"Bocian", key:"Zmiana", icon:"stork",
+    general:"Przeprowadzka, poprawa sytuacji, naturalny etap rozwoju — rzeczy się przesuwają.",
+    love:"Przejście na kolejny etap związku, np. wspólne zamieszkanie.",
+    work:"Awans, zmiana miejsca pracy.",
+    health:"Poprawa stanu zdrowia, naturalny proces zdrowienia."},
+  {id:18, name:"Pies", key:"Lojalność, przyjaciel", icon:"dog",
+    general:"Wierna osoba, zaufanie, przyjaźń — ktoś, na kim można polegać.",
+    love:"Wierny partner, szczera, oddana relacja.",
+    work:"Lojalny współpracownik, uczciwa współpraca.",
+    health:"Wsparcie bliskiej osoby w trosce o zdrowie."},
+  {id:19, name:"Wieża", key:"Instytucja, dystans", icon:"tower",
+    general:"Urząd, firma, samotność albo ambicja — sprawa formalna lub emocjonalny dystans.",
+    love:"Emocjonalny dystans, samotność, chłodna relacja.",
+    work:"Duża firma, urząd, formalna sprawa zawodowa.",
+    health:"Sprawa wymagająca konsultacji ze specjalistą lub placówką."},
+  {id:20, name:"Ogród", key:"Życie publiczne", icon:"garden",
+    general:"Spotkania, znajomi, wydarzenia towarzyskie — sprawy dziejące się na widoku innych.",
+    love:"Poznanie kogoś w towarzystwie, relacja widoczna publicznie.",
+    work:"Networking, wydarzenia branżowe, sprawy na widoku wielu osób.",
+    health:"Aktywność na świeżym powietrzu, korzyść z ruchu wśród ludzi."},
+  {id:21, name:"Góra", key:"Przeszkoda", icon:"mountain",
+    general:"Wyraźna blokada, opór, rywal — coś, co trzeba obejść albo przetrwać.",
+    love:"Trudność do pokonania w związku, dystans z powodu okoliczności.",
+    work:"Wyraźna blokada zawodowa, silna konkurencja.",
+    health:"Trudny do przełamania nawyk lub długotrwała dolegliwość."},
+  {id:22, name:"Rozstaje", key:"Wybór", icon:"cross2",
+    general:"Kilka możliwych dróg, decyzja do podjęcia — moment, w którym trzeba wybrać kierunek.",
+    love:"Decyzja między dwiema osobami lub kierunkami relacji.",
+    work:"Wybór między ofertami lub ścieżkami kariery.",
+    health:"Decyzja dotycząca metody leczenia lub stylu życia."},
+  {id:23, name:"Myszy", key:"Strata, erozja", icon:"mice",
+    general:"Coś powoli ubywa — stres, drobne kradzieże energii, zmartwienie toczące od środka.",
+    love:"Uczucie powoli wygasa, drobne żale się kumulują.",
+    work:"Drobne straty finansowe, wyciek zasobów.",
+    health:"Stres podgryzający energię, drobne dolegliwości narastające."},
+  {id:24, name:"Serce", key:"Miłość, uczucia", icon:"heart",
+    general:"Rdzeń emocjonalny sytuacji — miłość, sympatia, to co naprawdę czujesz.",
+    love:"Głębokie, szczere uczucie, sedno sprawy sercowej.",
+    work:"Praca wykonywana z pasją, zaangażowanie emocjonalne.",
+    health:"Sprawy związane z sercem lub emocjonalnym samopoczuciem."},
+  {id:25, name:"Pierścień", key:"Zobowiązanie", icon:"ring",
+    general:"Umowa, kontrakt, cykl, który się zamyka lub powtarza — coś trwałego i wiążącego.",
+    love:"Zaręczyny, małżeństwo, trwałe zobowiązanie.",
+    work:"Umowa, kontrakt, długoterminowe partnerstwo biznesowe.",
+    health:"Powtarzający się cykl zdrowotny, rutyna terapeutyczna."},
+  {id:26, name:"Książka", key:"Tajemnica, wiedza", icon:"book",
+    general:"Coś nieujawnionego, wiedza do zdobycia, sprawa wymagająca dalszego zgłębienia.",
+    love:"Nieujawnione uczucia lub sekret w relacji.",
+    work:"Nauka, szkolenie, sprawa wymagająca dalszego researchu.",
+    health:"Niezdiagnozowana jeszcze przyczyna, potrzeba dalszych badań."},
+  {id:27, name:"List", key:"Dokument, wiadomość", icon:"letter",
+    general:"Pismo, e-mail, oficjalna informacja — coś zapisanego, co dotrze do rąk.",
+    love:"List miłosny, wiadomość o uczuciowym znaczeniu.",
+    work:"Umowa, e-mail, oficjalne pismo zawodowe.",
+    health:"Wyniki badań, dokumentacja medyczna."},
+  {id:28, name:"Mężczyzna", key:"Osoba pytająca / mężczyzna", icon:"man",
+    general:"Mężczyzna istotny dla sprawy albo sam pytający, jeśli jest mężczyzną.",
+    love:"Partner lub mężczyzna, wokół którego kręci się pytanie.",
+    work:"Mężczyzna decyzyjny w sprawach zawodowych.",
+    health:"Mężczyzna, którego dotyczy stan zdrowia w pytaniu."},
+  {id:29, name:"Kobieta", key:"Osoba pytająca / kobieta", icon:"woman",
+    general:"Kobieta istotna dla sprawy albo sama pytająca, jeśli jest kobietą.",
+    love:"Partnerka lub kobieta, wokół której kręci się pytanie.",
+    work:"Kobieta decyzyjna w sprawach zawodowych.",
+    health:"Kobieta, której dotyczy stan zdrowia w pytaniu."},
+  {id:30, name:"Lilia", key:"Dojrzałość, spokój", icon:"lily",
+    general:"Doświadczenie, rodzina, spokojna trwałość — sprawy ustatkowane, często starsza osoba.",
+    love:"Stała, dojrzała relacja, często z osobą doświadczoną.",
+    work:"Doświadczenie zawodowe, stabilna, ustatkowana pozycja.",
+    health:"Sprawy związane z wiekiem, spokojna regeneracja."},
+  {id:31, name:"Słońce", key:"Sukces, energia", icon:"sun",
+    general:"Jasność, witalność, powodzenie — sprawa wychodzi na dobre, energia i widoczność.",
+    love:"Szczęśliwa, pełna energii relacja, radość we dwoje.",
+    work:"Wyraźny sukces zawodowy, widoczne efekty pracy.",
+    health:"Wysoka witalność, dobra forma fizyczna."},
+  {id:32, name:"Księżyc", key:"Emocje, uznanie", icon:"moon",
+    general:"Wewnętrzne przeżycia, intuicja, rozpoznanie lub sława — coś rezonuje emocjonalnie.",
+    love:"Głębokie emocje, intuicyjne zrozumienie partnera.",
+    work:"Rozpoznawalność, uznanie za dotychczasowe osiągnięcia.",
+    health:"Sprawy emocjonalne wpływające na samopoczucie i sen."},
+  {id:33, name:"Klucz", key:"Rozwiązanie, pewność", icon:"key",
+    general:"Jasna odpowiedź, coś się otwiera lub domyka — pewność zamiast wątpliwości.",
+    love:"Jasność co do uczuć, przełom w relacji.",
+    work:"Rozwiązanie problemu zawodowego, klucz do sukcesu.",
+    health:"Znalezienie skutecznego rozwiązania lub terapii."},
+  {id:34, name:"Ryby", key:"Pieniądze, biznes", icon:"fish",
+    general:"Przepływ finansowy, obfitość, sprawy zawodowe i inwestycyjne.",
+    love:"Obfitość uczuć, hojność w relacji.",
+    work:"Zysk finansowy, udany biznes, przepływ gotówki.",
+    health:"Nadmiar (np. przetrenowanie) lub potrzeba lepszego balansu."},
+  {id:35, name:"Kotwica", key:"Stabilność, praca", icon:"anchor",
+    general:"Trwałość, zakorzenienie, stała praca — coś, co daje oparcie na dłużej.",
+    love:"Stały, pewny związek, poczucie zakotwiczenia.",
+    work:"Stała praca, pewne źródło dochodu.",
+    health:"Stabilna, dobra kondycja zdrowotna na dłuższą metę."},
+  {id:36, name:"Krzyż", key:"Brzemię, los", icon:"cross",
+    general:"Coś nieuniknionego, ciężar do udźwignięcia — sprawa, na którą trzeba się pogodzić.",
+    love:"Trudny, wymagający poświęceń etap w relacji.",
+    work:"Ciężar obowiązków zawodowych, trudna sytuacja finansowa do udźwignięcia.",
+    health:"Poważniejsza dolegliwość wymagająca akceptacji i cierpliwości."},
+];
+const byId = id => CARDS.find(c => c.id === id);
+const svgFor = key => `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round">${ICON[key]}</svg>`;
+
+const COMBOS = [
+  {cards:[24,25,4], theme:"Zaręczyny albo ślub — trwałe zobowiązanie miłosne w kontekście rodziny i domu."},
+  {cards:[18,6,23], theme:"Zaufanie do przyjaciela nadszarpnięte przez nieporozumienie i powolną utratę energii."},
+  {cards:[34,19,33], theme:"Sukces finansowy dzięki instytucji lub firmie — kluczowa decyzja biznesowa."},
+  {cards:[7,24,29], theme:"Skomplikowany trójkąt uczuciowy albo rywalka w sprawach sercowych."},
+  {cards:[31,13,17], theme:"Radosny nowy początek — narodziny, przeprowadzka pełna nadziei."},
+  {cards:[10,19,28], theme:"Nagła decyzja mężczyzny związana z instytucją — rezygnacja lub zwolnienie."},
+  {cards:[21,20,26], theme:"Przeszkoda w życiu publicznym — ukryta wiedza blokuje dalszy postęp."},
+  {cards:[16,3,31], theme:"Udana podróż prowadząca do spełnienia marzeń i sukcesu."},
+  {cards:[11,12,27], theme:"Powtarzający się konflikt słowny — spór zawarty w wiadomości."},
+  {cards:[9,20,24], theme:"Zaproszenie na spotkanie towarzyskie, na którym rodzi się sympatia."},
+  {cards:[8,5,33], theme:"Koniec pewnego etapu zdrowotnego — rozwiązanie po długim czasie oczekiwania."},
+  {cards:[22,2,16], theme:"Szczęśliwy wybór między opcjami prowadzący do spełnienia nadziei."},
+  {cards:[14,15,19], theme:"Przebiegła gra o wpływy w dużej organizacji — rywalizacja z przełożonym."},
+  {cards:[30,24,25], theme:"Dojrzała, stabilna miłość zmierzająca ku trwałemu zobowiązaniu."},
+  {cards:[36,21,5], theme:"Długotrwały ciężar zdrowotny lub życiowe brzemię trudne do pokonania."},
+  {cards:[1,27,24], theme:"Nadchodzi wiadomość w sprawach sercowych — list o emocjonalnym znaczeniu."},
+  {cards:[32,29,26], theme:"Intuicyjna, tajemnicza kobieta skrywająca ważny sekret."},
+  {cards:[35,4,15], theme:"Stabilność domowa zapewniona dzięki silnej, opiekuńczej osobie."},
+  {cards:[17,3,20], theme:"Zmiana miejsca zamieszkania po podróży — nowe życie towarzyskie."},
+  {cards:[6,7,11], theme:"Okres pełen nieporozumień, intryg i powtarzających się sporów."},
+];
+
+/* ---------------- PROGRESS (local, per-viewer) ---------------- */
+let progress = { correct: 0, total: 0 };
+try {
+  const saved = localStorage.getItem('lenormand-progress');
+  if (saved) progress = JSON.parse(saved);
+} catch (e) { /* storage unavailable — start fresh */ }
+function saveProgress() {
+  try { localStorage.setItem('lenormand-progress', JSON.stringify(progress)); } catch (e) {}
+}
+function renderStats() {
+  document.getElementById('statCorrect').textContent = progress.correct;
+  document.getElementById('statTotal').textContent = progress.total;
+}
+
+/* ---------------- TAB NAV ---------------- */
+const tabs = ['deck','trainer','draw'];
+function showTab(name) {
+  tabs.forEach(t => {
+    document.getElementById('panel-' + t).hidden = (t !== name);
+  });
+  document.querySelectorAll('nav.bottom button').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+}
+document.querySelectorAll('nav.bottom button').forEach(b => {
+  b.addEventListener('click', () => showTab(b.dataset.tab));
+});
+
+/* ---------------- MODAL ---------------- */
+function openCardModal(card) {
+  const modal = document.getElementById('modalContent');
+  modal.innerHTML = `
+    <div class="modal-head">
+      ${svgFor(card.icon)}
+      <div>
+        <h3>${card.name}</h3>
+        <div class="k">${card.key}</div>
+      </div>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="cat-block"><div class="label">Ogólne znaczenie</div><p>${card.general}</p></div>
+    <div class="cat-block"><div class="label">Miłość &amp; Relacje</div><p>${card.love}</p></div>
+    <div class="cat-block"><div class="label">Praca &amp; Finanse</div><p>${card.work}</p></div>
+    <div class="cat-block"><div class="label">Zdrowie &amp; Energia</div><p>${card.health}</p></div>
+  `;
+  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+}
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'modalOverlay') closeModal();
+});
+
+/* ---------------- DECK ---------------- */
+function renderDeck(filter) {
+  const grid = document.getElementById('deckGrid');
+  const q = (filter || '').trim().toLowerCase();
+  const list = CARDS.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.key.toLowerCase().includes(q) ||
+    c.general.toLowerCase().includes(q) || c.love.toLowerCase().includes(q) ||
+    c.work.toLowerCase().includes(q) || c.health.toLowerCase().includes(q)
+  );
+  document.getElementById('noResults').hidden = list.length > 0;
+  grid.innerHTML = list.map(c => `
+    <div class="card-slot" data-id="${c.id}">
+      <div class="card-inner">
+        <div class="card-face card-front">
+          <span class="num">${c.id}</span>
+          ${svgFor(c.icon)}
+          <span class="name">${c.name}</span>
+        </div>
+        <div class="card-face card-back">
+          <span class="key">${c.key}</span>
+          <span class="meaning">${c.general}</span>
+          <button class="more-btn" data-id="${c.id}">Cztery obszary</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+  grid.querySelectorAll('.card-slot').forEach(slot => {
+    slot.addEventListener('click', () => slot.classList.toggle('flipped'));
+  });
+  grid.querySelectorAll('.more-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openCardModal(byId(parseInt(btn.dataset.id, 10)));
+    });
+  });
+}
+document.getElementById('search').addEventListener('input', e => renderDeck(e.target.value));
+renderDeck('');
+
+/* ---------------- TRAINER ---------------- */
+let quizMode = 'single';
+document.getElementById('modeSingle').addEventListener('click', () => setMode('single'));
+document.getElementById('modeTriple').addEventListener('click', () => setMode('triple'));
+function setMode(mode) {
+  quizMode = mode;
+  document.getElementById('modeSingle').classList.toggle('active', mode === 'single');
+  document.getElementById('modeTriple').classList.toggle('active', mode === 'triple');
+  nextQuestion();
+}
+
+function pickDistinct(arr, n, excludeIds) {
+  const pool = arr.filter(x => !excludeIds.includes(x.id ?? x));
+  const out = [];
+  while (out.length < n && pool.length) {
+    const i = Math.floor(Math.random() * pool.length);
+    out.push(pool.splice(i, 1)[0]);
+  }
+  return out;
+}
+
+function nextQuestion() {
+  const area = document.getElementById('quizArea');
+  if (quizMode === 'single') {
+    const correctCard = CARDS[Math.floor(Math.random() * CARDS.length)];
+    const distractors = pickDistinct(CARDS, 3, [correctCard.id]);
+    const options = [correctCard, ...distractors].sort(() => Math.random() - 0.5);
+    area.innerHTML = `
+      <div class="quiz-icons">
+        <div class="quiz-icon-item">${svgFor(correctCard.icon)}<span>${correctCard.name}</span></div>
+      </div>
+      <p class="quiz-question">Które znaczenie pasuje do tej karty?</p>
+      <div class="options">
+        ${options.map(o => `<button class="option-btn" data-correct="${o.id === correctCard.id}">${o.key}</button>`).join('')}
+      </div>
+    `;
+  } else {
+    const combo = COMBOS[Math.floor(Math.random() * COMBOS.length)];
+    const wrongThemes = pickDistinct(COMBOS.filter(c => c !== combo), 3, []);
+    const options = [combo, ...wrongThemes].sort(() => Math.random() - 0.5);
+    area.innerHTML = `
+      <div class="quiz-icons">
+        ${combo.cards.map(id => `<div class="quiz-icon-item">${svgFor(byId(id).icon)}<span>${byId(id).name}</span></div>`).join('')}
+      </div>
+      <p class="quiz-question">Jaki temat najlepiej łączy te trzy karty?</p>
+      <div class="options">
+        ${options.map(o => `<button class="option-btn" data-correct="${o === combo}">${o.theme}</button>`).join('')}
+      </div>
+    `;
+  }
+  area.querySelectorAll('.option-btn').forEach(btn => {
+    btn.addEventListener('click', () => handleAnswer(btn, area));
+  });
+}
+
+function handleAnswer(btn, area) {
+  const correct = btn.dataset.correct === 'true';
+  area.querySelectorAll('.option-btn').forEach(b => {
+    b.disabled = true;
+    if (b.dataset.correct === 'true') b.classList.add('correct');
+    else if (b === btn) b.classList.add('wrong');
+  });
+  progress.total += 1;
+  if (correct) progress.correct += 1;
+  saveProgress();
+  renderStats();
+  const cont = document.createElement('div');
+  cont.className = 'btn-row';
+  cont.innerHTML = `<button class="btn">Następne pytanie</button>`;
+  cont.querySelector('button').addEventListener('click', nextQuestion);
+  area.appendChild(cont);
+}
+
+renderStats();
+nextQuestion();
+
+/* ---------------- DAILY DRAW ---------------- */
+let drawCount = 1;
+document.querySelectorAll('.draw-count .mode-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.draw-count .mode-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    drawCount = parseInt(b.dataset.n, 10);
+  });
+});
+let currentDraw = [];
+document.getElementById('drawBtn').addEventListener('click', () => {
+  currentDraw = pickDistinct(CARDS, drawCount, []);
+  document.getElementById('drawnCards').innerHTML = currentDraw.map(c => `
+    <div class="mini">${svgFor(c.icon)}<div class="n">${c.name}</div></div>
+  `).join('');
+  document.getElementById('journalWrap').style.display = 'block';
+  document.getElementById('journal').value = '';
+  document.getElementById('revealBox').classList.remove('show');
+  document.getElementById('revealBox').innerHTML = '';
+});
+document.getElementById('revealBtn').addEventListener('click', () => {
+  const box = document.getElementById('revealBox');
+  box.innerHTML = currentDraw.map(c => `
+    <div class="reveal-item">
+      ${svgFor(c.icon)}
+      <div>
+        <div class="t">${c.name} — ${c.key}</div>
+        <div class="cat-line"><b>Ogólne:</b> ${c.general}</div>
+        <div class="cat-line"><b>Miłość &amp; Relacje:</b> ${c.love}</div>
+        <div class="cat-line"><b>Praca &amp; Finanse:</b> ${c.work}</div>
+        <div class="cat-line"><b>Zdrowie &amp; Energia:</b> ${c.health}</div>
+      </div>
+    </div>
+  `).join('');
+  box.classList.add('show');
+});
+</script>
+</body>
+</html>
